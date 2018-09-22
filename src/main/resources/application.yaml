@@ -1,0 +1,9 @@
+spring.profiles.active: cde
+
+
+---
+spring:
+  profiles: cde
+
+uploadUrl: cde/api/upload_file
+submitUrl: cde/api/upload_file/submit_files

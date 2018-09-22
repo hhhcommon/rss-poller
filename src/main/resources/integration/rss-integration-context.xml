@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-feed="http://www.springframework.org/schema/integration/feed"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+			http://www.springframework.org/schema/integration/feed http://www.springframework.org/schema/integration/feed/spring-integration-feed.xsd">
+
+
+
+    <bean id="metadataStore"
+          class="org.springframework.integration.metadata.PropertiesPersistingMetadataStore">
+        <property name="baseDirectory" value="./" />
+    </bean>
+
+    <int-feed:inbound-channel-adapter id="nasaAdapter"
+                                      channel="feedChannel"
+                                      auto-startup="true"
+                                      url="https://www.nasa.gov/rss/dyn/breaking_news.rss">
+        <int:poller fixed-rate="10000" max-messages-per-poll="100" />
+    </int-feed:inbound-channel-adapter>
+
+    <int-feed:inbound-channel-adapter id="ncasAdapter"
+                                      channel="feedChannel"
+                                      auto-startup="true"
+                                      url="https://www.us-cert.gov/ncas/analysis-reports.xml">
+        <int:poller fixed-rate="10000" max-messages-per-poll="100" />
+    </int-feed:inbound-channel-adapter>
+
+    <int:channel id="feedChannel">
+        <int:queue/>
+    </int:channel>
+
+</beans>
