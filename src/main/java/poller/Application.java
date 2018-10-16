@@ -15,30 +15,61 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.PollableChannel;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @SpringBootApplication
 public class Application implements CommandLineRunner {
 
-  private static final Logger logger = LoggerFactory.getLogger(Application.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
 
 
   @Override
   public void run(String... args) {
-    ConfigurableApplicationContext ac = new ClassPathXmlApplicationContext("spring/integration/rss-integration-context.xml");
+    ConfigurableApplicationContext ac = new ClassPathXmlApplicationContext("integration/rss-integration-context.xml");
     PollableChannel feedChannel = ac.getBean("feedChannel", PollableChannel.class);
         Message<SyndEntry> message = (Message<SyndEntry>) feedChannel.receive(1000);
         while (message != null) {
           SyndEntry entry = message.getPayload();
           System.out.println(entry.getPublishedDate() + " - " + entry.getTitle());
-//          System.out.println(entry.toString());
-          writeToDisk(entry.getDescription().getValue(), entry.getTitle());
+          saveTempFile(entry.getDescription().getValue(), entry.getTitle());
           message = (Message<SyndEntry>) feedChannel.receive(1000);
         }
+
+        convertFilesToPdf();
+        cleanup();
     ac.close();
+  }
+
+  /**
+   *
+   */
+  private void convertFilesToPdf() {
+    try {
+      Files.walk(Paths.get("/tmp/out")).forEach(p -> {
+        try {
+          generatePDFFromHTML(p.toString());
+        } catch ( Exception e ) {
+          System.out.println(e.getMessage());
+        }
+      });
+    } catch ( IOException e ) {
+      System.out.println(e.getMessage());
+    }
+
+  }
+
+
+  /**
+   * Temporary function designed to remove the metadata-store.properties file that Spring Integration Feed generates.
+   */
+  private void cleanup()  {
+    try {
+      Files.deleteIfExists(Paths.get("../../../metadata-store.properties"));
+    } catch ( IOException e ) {
+      System.out.println(e.getMessage());
+    }
   }
 
   /**
@@ -46,7 +77,7 @@ public class Application implements CommandLineRunner {
    * @param content
    * @param entryTitle
    */
-  private void writeToDisk(String content, String entryTitle)  {
+  private void saveTempFile(String content, String entryTitle)  {
     try {
       FileOutputStream fileStream = new FileOutputStream("/tmp/out/" + entryTitle + ".html");
       fileStream.write(content.getBytes());
@@ -65,7 +96,7 @@ public class Application implements CommandLineRunner {
   private static void generatePDFFromHTML(String filename) throws IOException, DocumentException, FileNotFoundException {
     Document document = new Document();
     PdfWriter writer = PdfWriter.getInstance(document,
-      new FileOutputStream("src/output/html.pdf"));
+      new FileOutputStream(filename + ".pdf"));
     document.open();
     XMLWorkerHelper.getInstance().parseXHtml(writer, document,
       new FileInputStream(filename));
@@ -75,10 +106,10 @@ public class Application implements CommandLineRunner {
 
 
   public static void main(String[] args) throws Exception {
-    logger.debug("Application.main() started.");
+    LOGGER.info("Application.main() started.");
     // Start up Spring Boot
     // NOTE:  See ApplicationListener.applicationReady() for post-startup checks
     SpringApplication.run(Application.class, args);
-    logger.debug("Poller is up.");
+    LOGGER.info("Poller is up.");
   }
 }
