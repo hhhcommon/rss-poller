@@ -4,6 +4,7 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.itextpdf.tool.xml.XMLWorkerHelper;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.rometools.rome.feed.synd.SyndEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,10 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.PollableChannel;
 
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -29,12 +34,12 @@ public class Application implements CommandLineRunner {
   public void run(String... args) {
     ConfigurableApplicationContext ac = new ClassPathXmlApplicationContext("integration/rss-integration-context.xml");
     PollableChannel feedChannel = ac.getBean("feedChannel", PollableChannel.class);
-        Message<SyndEntry> message = (Message<SyndEntry>) feedChannel.receive(1000);
+        Message<SyndEntry> message = (Message<SyndEntry>) feedChannel.receive(10000);
         while (message != null) {
           SyndEntry entry = message.getPayload();
           System.out.println(entry.getPublishedDate() + " - " + entry.getTitle());
           saveTempFile(entry.getDescription().getValue(), entry.getTitle());
-          message = (Message<SyndEntry>) feedChannel.receive(1000);
+          message = (Message<SyndEntry>) feedChannel.receive(10000);
         }
 
         convertFilesToPdf();
@@ -47,13 +52,17 @@ public class Application implements CommandLineRunner {
    */
   private void convertFilesToPdf() {
     try {
-      Files.walk(Paths.get("/tmp/out")).forEach(p -> {
-        try {
-          generatePDFFromHTML(p.toString());
-        } catch ( Exception e ) {
-          System.out.println(e.getMessage());
-        }
-      });
+      Files.walk(Paths.get("/tmp/out"))
+        .filter(f -> new File(f.toString()).isFile())
+//        .map(p -> p.toUri())
+        .forEach(p -> {
+          try {
+           generatePDFFromHTML(p.toString());
+//            convertHTMLtoPDF(p);
+          } catch ( Exception e ) {
+            System.out.println(e.getMessage());
+          }
+        });
     } catch ( IOException e ) {
       System.out.println(e.getMessage());
     }
@@ -101,6 +110,21 @@ public class Application implements CommandLineRunner {
     XMLWorkerHelper.getInstance().parseXHtml(writer, document,
       new FileInputStream(filename));
     document.close();
+  }
+
+
+  /**
+   *
+   * @param filename
+   * @throws Exception
+   */
+  private static void convertHTMLtoPDF(URI filename) throws Exception {
+    try (OutputStream os = new FileOutputStream(filename.toString())) {
+      PdfRendererBuilder builder = new PdfRendererBuilder();
+      builder.withUri(filename.toString());
+      builder.toStream(os);
+      builder.run();
+    }
   }
 
 

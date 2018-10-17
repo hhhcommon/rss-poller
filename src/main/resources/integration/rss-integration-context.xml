@@ -13,20 +13,14 @@
         <property name="baseDirectory" value="./" />
     </bean>
 
-    <int-feed:inbound-channel-adapter id="nasaAdapter"
+
+    <int-feed:inbound-channel-adapter id="infoSecMag"
                                       channel="feedChannel"
                                       auto-startup="true"
-                                      url="https://www.nasa.gov/rss/dyn/breaking_news.rss">
+                                      url="https://www.infosecurity-magazine.com/rss/news/">
         <int:poller fixed-rate="10000" max-messages-per-poll="100" />
-    </int-feed:inbound-channel-adapter>
 
-    <int-feed:inbound-channel-adapter id="ncasAdapter"
-                                      channel="feedChannel"
-                                      auto-startup="true"
-                                      url="https://www.us-cert.gov/ncas/analysis-reports.xml">
-        <int:poller fixed-rate="10000" max-messages-per-poll="100" />
     </int-feed:inbound-channel-adapter>
-
     <int:channel id="feedChannel">
         <int:queue/>
     </int:channel>

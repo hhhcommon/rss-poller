@@ -15,6 +15,9 @@
     </parent>
 
     <properties>
+        <!-- Define the version of OPEN HTML TO PDF in the properties section of your POM. -->
+        <openhtml.version>0.0.1-RC16</openhtml.version>
+
     <!-- Spring support.-->
     <spring-boot-version>2.0.3.RELEASE</spring-boot-version>
     <spring_release_version>5.0.3.RELEASE</spring_release_version>
@@ -66,6 +69,21 @@
             <version>${async_http_client_version}</version>
         </dependency>
 
+
+
+        <dependency>
+            <!-- ALWAYS required. -->
+            <groupId>com.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-core</artifactId>
+            <version>${openhtml.version}</version>
+        </dependency>
+
+        <dependency>
+            <!-- Required for PDF output. -->
+            <groupId>com.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-pdfbox</artifactId>
+            <version>${openhtml.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
